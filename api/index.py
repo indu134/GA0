@@ -7,10 +7,11 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-# CRITICAL FIX: Removed allow_credentials=True so the "*" origin works correctly!
+# FastAPI handles all CORS entirely on its own now
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=False, 
     allow_methods=["*"], 
     allow_headers=["*"],
 )
@@ -19,7 +20,7 @@ class TelemetryRequest(BaseModel):
     regions: list[str]
     threshold_ms: float
 
-# Ensure Vercel can find the JSON file in its cloud environment
+# Robust pathing for Vercel's cloud environment
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 JSON_PATH = os.path.join(BASE_DIR, "q-vercel-latency.json")
 
@@ -33,7 +34,6 @@ def get_metrics(req: TelemetryRequest):
     results = {}
     
     for region in req.regions:
-        # Filter down to just the region we care about right now
         region_data = [d for d in telemetry_data if d.get("region") == region]
         
         if not region_data:
@@ -42,18 +42,15 @@ def get_metrics(req: TelemetryRequest):
         latencies = [d["latency_ms"] for d in region_data]
         uptimes = [d["uptime_pct"] for d in region_data]
         
-        # Calculate the required metrics
         avg_latency = statistics.mean(latencies)
         avg_uptime = statistics.mean(uptimes)
         breaches = sum(1 for lat in latencies if lat > req.threshold_ms)
         
-        # 95th Percentile logic
         if len(latencies) > 1:
             p95_latency = statistics.quantiles(latencies, n=100, method='inclusive')[94]
         else:
             p95_latency = latencies[0]
             
-        # Format exactly as requested
         results[region] = {
             "avg_latency": round(avg_latency, 2),
             "p95_latency": round(p95_latency, 2),
