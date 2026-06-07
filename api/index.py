@@ -7,12 +7,12 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-# Enable CORS for POST requests from any origin
+# Enable CORS for POST requests and OPTIONS preflights from any origin
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["POST"],
+    allow_methods=["*"],  # <-- CRITICAL FIX: Changed from ["POST"] to ["*"]
     allow_headers=["*"],
 )
 
