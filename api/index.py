@@ -7,11 +7,10 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-# CRITICAL FIX: allow_methods=["*"] ensures the OPTIONS preflight passes
+# CRITICAL FIX: Removed allow_credentials=True so the "*" origin works correctly!
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"], 
     allow_headers=["*"],
 )
